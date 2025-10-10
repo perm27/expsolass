@@ -1,13 +1,21 @@
 version: 1
 frontend:
   phases:
-    # 依存関係のインストール。バックエンド定義も含まれるため、ルートで実行。
+    # 依存関係のインストール（バックエンドを含む）をプロジェクトルートで実行
     preBuild:
       commands:
+        # ルートでインストール
         - npm install
-    # フロントエンドのビルド。frontend ディレクトリに移動してから実行。
+        # frontend フォルダに移動し、依存関係を再インストールして、必要なバイナリが揃っていることを確認
+        - cd frontend
+        - npm install
+        - cd ..
     build:
       commands:
+        # PATHにローカルのnode_modulesバイナリのパスを追加し、`react-scripts` を実行できるようにする
+        - export PATH=$PATH:./node_modules/.bin
+        - export PATH=$PATH:./frontend/node_modules/.bin
+        # frontend フォルダに移動してビルドを実行
         - cd frontend
         - npm run build
   # 💡 成果物(静的ファイル)が frontend/build/ にあることを指定
@@ -17,3 +25,4 @@ frontend:
       - '**/*'
   # 💡 ソースコードの場所を frontend/ に指定 (ホスティングの基本ディレクトリ)
   baseDirectory: frontend 
+
