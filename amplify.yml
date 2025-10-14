@@ -3,18 +3,32 @@ frontend:
   phases:
     preBuild:
       commands:
-        # Node.jsとAmplify CLIのインストール
+        # 1. Node.jsとAmplify CLIのインストール
         - npm install -g @aws-amplify/cli@latest
-        - npm ci
+        
+        # 2. 依存関係のクリーンインストール (同期エラー対策としてフォールバックを追加)
+        - npm ci || npm install
+        
+        # 3. AWS_REGIONのエクスポート (AWSリージョン不一致エラー対策)
+        # ※ 環境変数AMPLIFY_REGIONがAmplify Consoleで設定されていることが前提
+        - export AWS_REGION=${AMPLIFY_REGION}
+
     build:
       commands:
-        # バックエンドのデプロイとamplify_outputs.jsonの生成
-        # envNameはデプロイブランチに応じてprod/main/devなどに置き換わる
+        # 4. バックエンドのデプロイとamplify_outputs.jsonの生成
+        # ampx: command not found 対策として npx を追加
         - npx ampx pipeline deploy --environment-name ${AWS_BRANCH}
         
-        # frontendディレクトリに移動して本番ビルドを実行
+        # 5. 設定ファイルをフロントエンドの src ディレクトリにコピー
+        # 'amplify_outputs.json' not found エラー対策
+        - cp ./amplify_outputs.json ./frontend/src/
+        
+        # 6. frontendディレクトリに移動
         - cd frontend
+        
+        # 7. フロントエンドのプロダクションビルドを実行
         - npm run build
+
   artifacts:
     baseDirectory: frontend/build # Reactプロジェクトの標準的なビルド出力ディレクトリ
     files:
@@ -22,3 +36,6 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
+      # frontend 内の node_modules もキャッシュ対象に追加
+      - frontend/node_modules/**/* ```
+
