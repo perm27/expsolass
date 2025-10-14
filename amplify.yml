@@ -7,6 +7,9 @@ frontend:
         # ルートでインストール
         - npm install
 
+        # AWS_REGIONが拒否された場合
+        - export AWS_REGION=${AMPLIFY_REGION}
+
         # バックエンドの設定ファイルを生成/取得するステップ
         # - amplify pull --appId YOUR_APP_ID --env YOUR_ENV_NAME --amplify-outputs-path .
         # AWS認証情報とリージョンを環境変数から使用し、非対話モードで実行
