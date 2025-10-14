@@ -1,0 +1,47 @@
+version: 1
+frontend:
+  phases:
+    # 依存関係のインストール（バックエンドを含む）をプロジェクトルートで実行
+    preBuild:
+      commands:
+        # ルートでインストール
+        - npm install
+
+        # AWS_REGIONが拒否された場合
+        - export AWS_REGION=${AMPLIFY_REGION}
+
+        # バックエンドの設定ファイルを生成/取得するステップ
+        # - amplify pull --appId YOUR_APP_ID --env YOUR_ENV_NAME --amplify-outputs-path .
+        # AWS認証情報とリージョンを環境変数から使用し、非対話モードで実行
+        - |
+          amplify pull \
+            --appId ${AMPLIFY_APP_ID} \
+            --envName prod \
+            --amplify-outputs-path . \
+            --yes
+            
+        #   --aws-config '{"accessKeyId": "'"$AWS_ACCESS_KEY_ID"'", "secretAccessKey": "'"$AWS_SECRET_ACCESS_KEY"'", "region": "'"$AWS_REGION"'"}'
+            
+        # 生成されたファイルをフロントエンドの src ディレクトリにコピー
+        - cp ./amplify_outputs.json ./frontend/src/
+
+        # frontend フォルダに移動し、依存関係を再インストールして、必要なバイナリが揃っていることを確認
+        - cd frontend
+        - npm install
+        - cd ..
+    build:
+      commands:
+        # PATHにローカルのnode_modulesバイナリのパスを追加し、`react-scripts` を実行できるようにする
+        - export PATH=$PATH:./node_modules/.bin
+        - export PATH=$PATH:./frontend/node_modules/.bin
+        # frontend フォルダに移動してビルドを実行
+        - cd frontend
+        - npm run build
+  # 💡 成果物(静的ファイル)が frontend/build/ にあることを指定
+  artifacts:
+    baseDirectory: frontend/build 
+    files:
+      - '**/*'
+  # 💡 ソースコードの場所を frontend/ に指定 (ホスティングの基本ディレクトリ)
+  baseDirectory: frontend 
+
