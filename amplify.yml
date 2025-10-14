@@ -12,8 +12,8 @@ frontend:
         # AWS認証情報とリージョンを環境変数から使用し、非対話モードで実行
         - |
           amplify pull \
-            --appId YOUR_APP_ID \
-            --envName YOUR_ENV_NAME \
+            --appId d36nkyvt6gwphx \
+            --envName prod \
             --amplify-outputs-path . \
             --yes
             
