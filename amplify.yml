@@ -10,7 +10,7 @@ frontend:
       commands:
         # バックエンドのデプロイとamplify_outputs.jsonの生成
         # envNameはデプロイブランチに応じてprod/main/devなどに置き換わる
-        - ampx pipeline deploy --environment-name ${AWS_BRANCH}
+        - npx ampx pipeline deploy --environment-name ${AWS_BRANCH}
         
         # frontendディレクトリに移動して本番ビルドを実行
         - cd frontend
