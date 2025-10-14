@@ -8,7 +8,17 @@ frontend:
         - npm install
 
         # バックエンドの設定ファイルを生成/取得するステップ
-        - amplify pull --appId YOUR_APP_ID --env YOUR_ENV_NAME --amplify-outputs-path .
+        # - amplify pull --appId YOUR_APP_ID --env YOUR_ENV_NAME --amplify-outputs-path .
+        # AWS認証情報とリージョンを環境変数から使用し、非対話モードで実行
+        - |
+          amplify pull \
+            --appId YOUR_APP_ID \
+            --envName YOUR_ENV_NAME \
+            --amplify-outputs-path . \
+            --yes
+            
+        #   --aws-config '{"accessKeyId": "'"$AWS_ACCESS_KEY_ID"'", "secretAccessKey": "'"$AWS_SECRET_ACCESS_KEY"'", "region": "'"$AWS_REGION"'"}'
+            
         # 生成されたファイルをフロントエンドの src ディレクトリにコピー
         - cp ./amplify_outputs.json ./frontend/src/
 
