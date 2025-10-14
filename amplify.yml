@@ -17,7 +17,9 @@ frontend:
       commands:
         # 4. バックエンドのデプロイとamplify_outputs.jsonの生成
         # ampx: command not found 対策として npx を追加
-        - npx ampx pipeline-deploy --environment-name ${AWS_BRANCH}
+        - npx ampx pipeline-deploy \
+          --branch ${AWS_BRANCH} \
+          --app-id ${AMPLIFY_APP_ID}
         
         # 5. 設定ファイルをフロントエンドの src ディレクトリにコピー
         # 'amplify_outputs.json' not found エラー対策
