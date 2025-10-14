@@ -25,6 +25,8 @@ frontend:
         
         # 6. frontendディレクトリに移動
         - cd frontend
+
+        - npm ci || npm install
         
         # 7. フロントエンドのプロダクションビルドを実行
         - npm run build
