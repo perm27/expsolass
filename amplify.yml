@@ -6,6 +6,12 @@ frontend:
       commands:
         # ルートでインストール
         - npm install
+
+        # バックエンドの設定ファイルを生成/取得するステップ
+        - amplify pull --appId YOUR_APP_ID --env YOUR_ENV_NAME --amplify-outputs-path .
+        # 生成されたファイルをフロントエンドの src ディレクトリにコピー
+        - cp ./amplify_outputs.json ./frontend/src/
+
         # frontend フォルダに移動し、依存関係を再インストールして、必要なバイナリが揃っていることを確認
         - cd frontend
         - npm install
