@@ -16,7 +16,8 @@ const cognitoClient = new CognitoIdentityProviderClient({});
 
 // CORSエラーを防ぐため、すべてのレスポンスヘッダーを定義
 const CORS_HEADERS = {
-    'Access-Control-Allow-Origin': '*', // 開発中はワイルドカード (*) で許可
+    // 'Access-Control-Allow-Origin': '*', // 開発中はワイルドカード (*) で許可
+    'Access-Control-Allow-Origin': 'http://192.168.49.241:3000',
     'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
     'Access-Control-Allow-Methods': 'OPTIONS,POST,GET,PUT,DELETE',
 };

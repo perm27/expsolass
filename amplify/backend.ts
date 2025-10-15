@@ -52,7 +52,11 @@ const userManagerApi = new RestApi(apiStack, 'UserManagerApi', {
     },
     // 💡 [CORS修正]: defaultCorsPreflightOptions を使用し、CORS設定をAPI全体に自動適用
     defaultCorsPreflightOptions: {
-        allowOrigins: ['http://localhost:3000'], 
+        allowOrigins: [
+            'http://localhost:3000', 
+            'http://127.0.0.1:3000', 
+            'http://192.168.49.241:3000'
+        ], 
         // 💡 [CORS修正]: POST, GET, PUT, DELETE, OPTIONS をすべて許可
         allowMethods: ['GET', 'PUT', 'DELETE', 'POST', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'Authorization', 'X-Amz-Date', 'X-Api-Key', 'X-Amz-Security-Token'],
