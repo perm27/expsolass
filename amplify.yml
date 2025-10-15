@@ -15,14 +15,14 @@ frontend:
 
     build:
       commands:
-        # 4. バックエンドのデプロイとamplify_outputs.jsonの生成
-        # ampx: command not found 対策として npx を追加
+
+        # 4. バックエンドのデプロイ
+        # このコマンドはデプロイを実行し、 ${AMPLIFY_APP_ID} と ${AWS_BRANCH} の環境を更新します。
         - npx ampx pipeline-deploy --branch ${AWS_BRANCH} --app-id ${AMPLIFY_APP_ID}
 
-        # 5. 🌟 修正: デプロイ完了後、AWSクラウドから最新の設定ファイルを明示的に取得 🌟
-        # --out-dir . は、amplify_outputs.json をカレントディレクトリ (プロジェクトルート) に生成する
-        - npx ampx generate outputs --out-dir . 
-
+        # 5. 🌟 修正: デプロイされたクラウド環境を特定し、最新の設定を取得 🌟
+        # --app-id と --branch を追加し、パイプライン環境を参照させる
+        - npx ampx generate outputs --out-dir . --app-id ${AMPLIFY_APP_ID} --branch ${AWS_BRANCH}
         
         # 6. 設定ファイルをフロントエンドの src ディレクトリにコピー
         # コピー元とコピー先を明確に指定
