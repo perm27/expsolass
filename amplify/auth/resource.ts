@@ -2,28 +2,29 @@
 import { defineAuth } from '@aws-amplify/backend';
 
 export const auth = defineAuth({
-  // ... 既存の設定
+  // 1. ユーザーのサインイン方法を定義
   loginWith: {
     email: true, // Eメールでログイン
   },
+  
+  // 2. ユーザーグループの定義
+  groups: ['Admin'],
+
+  // 3. ユーザー属性のカスタマイズ
   userAttributes: {
-    // ... 既存の属性 (emailなど)
+    // 標準属性の定義
+    familyName: { mutable: true, required: false },
+    
+    // カスタム属性 'custom:name' の定義
     'custom:name': {
-      // 💡 [修正]: required: false は削除。Cognitoカスタム属性には不要です。
-      dataType: 'String', 
-      mutable: true, // 変更可能
-      
-      // CognitoのUIで表示される名前
-      //displayName: '表示名', 
-      
-      // 管理者(Admin)およびセルフサービス(User)の両方から読み書き可能にする
-      // [注意]: Amplify Gen 2では 'readAccess' や 'writeAccess' の代わりに
-      // mutability と access を設定するのが一般的ですが、今回は
-      // 既存のコードスタイルに合わせ、読み書き権限の設定を維持します。
-      //readAccess: ['admin', 'user'], 
-      //writeAccess: ['admin', 'user'], 
+      mutable: true,   // ユーザーによる変更を許可
+      // 【🌟 修正箇所 🌟】 required: false を削除
+      dataType: 'String',
+      minLen: 1,
+      maxLen: 128,
     },
   },
-  // ... 既存の設定
-  groups: ['Admin'],
+
+  // 4. Cognitoユーザープールのカスタム名（任意）
+  name: 'MyCustomAuth',
 });

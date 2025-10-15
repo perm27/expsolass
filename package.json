@@ -11,9 +11,10 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "@aws-amplify/cli": "^14.0.0",
     "@aws-amplify/backend": "^1.16.1",
     "@aws-amplify/backend-cli": "^1.8.0",
+    "@aws-amplify/cli": "^14.0.0",
+    "@types/node": "^24.7.2",
     "aws-cdk-lib": "^2.204.0",
     "constructs": "^10.4.2",
     "esbuild": "^0.25.10",
