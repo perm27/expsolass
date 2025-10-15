@@ -55,7 +55,11 @@ const userManagerApi = new RestApi(apiStack, 'UserManagerApi', {
         allowOrigins: [
             'http://localhost:3000', 
             'http://127.0.0.1:3000', 
-            'http://192.168.49.241:3000'
+            'http://192.168.49.241:3000',
+            // 💡 AWSクラウドデプロイ用（最も重要）
+            'https://master.d36nkyvt6gwphx.amplifyapp.com',
+            // 💡 念のため、ワイルドカードドメインも追加（推奨されませんが、もしブランチが増える場合は有効）
+            'https://*.amplifyapp.com', 
         ], 
         // 💡 [CORS修正]: POST, GET, PUT, DELETE, OPTIONS をすべて許可
         allowMethods: ['GET', 'PUT', 'DELETE', 'POST', 'OPTIONS'],
