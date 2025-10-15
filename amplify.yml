@@ -18,17 +18,21 @@ frontend:
         # 4. バックエンドのデプロイとamplify_outputs.jsonの生成
         # ampx: command not found 対策として npx を追加
         - npx ampx pipeline-deploy --branch ${AWS_BRANCH} --app-id ${AMPLIFY_APP_ID}
-        
-        # 5. 設定ファイルをフロントエンドの src ディレクトリにコピー
-        # 'amplify_outputs.json' not found エラー対策
-        - cp ./amplify_outputs.json ./frontend/src/
-        
-        # 6. frontendディレクトリに移動
-        - cd frontend
 
-        - npm ci || npm install
+        # 5. 🌟 修正: デプロイ完了後、AWSクラウドから最新の設定ファイルを明示的に取得 🌟
+        # --format json はデフォルトなので省略可能ですが、明示的に指定します。
+        # カレントディレクトリ (プロジェクトルート) に amplify_outputs.json を生成
+        - npx ampx generate outputs --output-path amplify_outputs.json
         
-        # 7. フロントエンドのプロダクションビルドを実行
+        # 6. 設定ファイルをフロントエンドの src ディレクトリにコピー
+        # コピー元とコピー先を明確に指定
+        - cp ./amplify_outputs.json ./frontend/src/
+
+        # 7. frontendディレクトリに移動し、依存関係を再インストール
+        - cd frontend
+        - npm ci || npm install
+
+        # 8. フロントエンドのプロダクションビルドを実行
         - npm run build
 
   artifacts:
