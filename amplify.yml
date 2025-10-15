@@ -20,9 +20,9 @@ frontend:
         - npx ampx pipeline-deploy --branch ${AWS_BRANCH} --app-id ${AMPLIFY_APP_ID}
 
         # 5. 🌟 修正: デプロイ完了後、AWSクラウドから最新の設定ファイルを明示的に取得 🌟
-        # --format json はデフォルトなので省略可能ですが、明示的に指定します。
-        # カレントディレクトリ (プロジェクトルート) に amplify_outputs.json を生成
-        - npx ampx generate outputs --output-path amplify_outputs.json
+        # --out-dir . は、amplify_outputs.json をカレントディレクトリ (プロジェクトルート) に生成する
+        - npx ampx generate outputs --out-dir . 
+
         
         # 6. 設定ファイルをフロントエンドの src ディレクトリにコピー
         # コピー元とコピー先を明確に指定
