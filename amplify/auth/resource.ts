@@ -16,9 +16,8 @@ export const auth = defineAuth({
     familyName: { mutable: true, required: false },
     
     // カスタム属性 'custom:name' の定義
-    'custom:name': {
+    'custom:namex': {
       mutable: true,   // ユーザーによる変更を許可
-      // 【🌟 修正箇所 🌟】 required: false を削除
       dataType: 'String',
       minLen: 1,
       maxLen: 128,
@@ -26,5 +25,5 @@ export const auth = defineAuth({
   },
 
   // 4. Cognitoユーザープールのカスタム名（任意）
-  name: 'MyCustomAuth',
+  name: 'solassUserMgr',
 });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { fetchAuthSession } from 'aws-amplify/auth';
+import { fetchAuthSession, AuthUser } from 'aws-amplify/auth'; // AuthUserをインポート
 import { Amplify } from 'aws-amplify';
 import outputs from './amplify_outputs.json';
 
@@ -18,7 +18,13 @@ const isUserArray = (data: any): data is User[] => {
              (typeof data[0] === 'object' && 'username' in data[0]));
 };
 
-export function UserManagementPage() {
+// 💡 [修正]: Propsの型定義を AuthUser | undefined に変更 (TSエラー解消)
+interface UserManagementPageProps {
+  authenticatedUser: AuthUser | undefined; 
+}
+
+// 💡 [修正]: Propsとして受け取る
+export function UserManagementPage({ authenticatedUser }: UserManagementPageProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,119 +32,168 @@ export function UserManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false); // 編集モーダル
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  // 💡 [修正]: 新規ユーザー登録用のStateに `addToAdminGroup` を追加 (デフォルト: true)
+  // 💡 [新規]: 外部からのデータ更新をトリガーするためのState
+  const [fetchTrigger, setFetchTrigger] = useState(0); 
+
+  // 💡 [新規]: 新規ユーザー登録用のStateに `addToAdminGroup` を追加
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createFormState, setCreateFormState] = useState({
       username: '',
       password: '',
       email: '',
-      name: '', // 表示名 (custom:name)
-      addToAdminGroup: true, // 💡 [新規] Adminグループへの追加フラグ
+      name: '', // 表示名 (custom:namex)
+      addToAdminGroup: true, // Adminグループへの追加フラグ
   });
 
+  // 💡 [新規]: 外部からデータ取得を再実行させるためのラッパー関数 (useCallbackでメモ化)
+  const refetchUsers = useCallback(() => {
+    // fetchTriggerをインクリメントし、useEffectを再実行させる
+    setFetchTrigger(prev => prev + 1);
+  }, []); 
 
-  // 1. ユーザー一覧取得 (useCallbackでメモ化)
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
 
-    if (!API_URL_BASE) {
-      console.error('API_URL_BASE is missing in amplify_outputs.json');
-      setError('API設定が見つかりません。バックエンドを再デプロイしてください。');
-      setLoading(false);
-      return;
+  // ----------------------------------------------------
+  // 1. Admin権限チェックとデータ取得の統合 (useEffect)
+  // ----------------------------------------------------
+  // 💡 [修正]: 依存配列に authenticatedUser を追加
+  useEffect(() => {
+    let isMounted = true; 
+    setLoading(true); 
+
+    // 💡 [追加]: authenticatedUser が undefined の場合は処理を中断
+    if (!authenticatedUser) {
+        if (isMounted) {
+            setIsAdmin(false);
+            setLoading(false);
+        }
+        return;
     }
     
-    const urlPath = `${API_URL_BASE.replace(/\/$/, '')}${API_PATH}`;
+    const checkAdminAndFetch = async () => {
+        setError(null);
 
-    try {
-      const session = await fetchAuthSession();
-      const idToken = session.tokens?.idToken?.toString();
-      
-      if (!idToken) {
-        setError('認証トークンが取得できませんでした。再ログインしてください。');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(urlPath, {
-        method: 'GET',
-        headers: {
-          'Authorization': idToken, 
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`APIリクエスト失敗: ${response.status} - ${errorBody}`);
-      }
-
-      const json = await response.json();
-
-      if (isUserArray(json)) {
-        setUsers(json); 
-      } else {
-        console.error('API returned data in unexpected format:', json);
-        setError('APIから予期しない形式のデータが返されました。');
-      }
-
-    } catch (err) {
-      console.error('Error fetching users:', err);
-      setError(`ユーザー一覧の取得に失敗しました: ${(err as Error).message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, []); // 依存配列は空
-
-
-  // 2. Admin権限チェック
-  useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        const session = await fetchAuthSession();
-        
-        // 'cognito:groups'ペイロードの値を取得
-        const groupsPayload = session.tokens?.idToken?.payload['cognito:groups'];
-        
-        // 配列であることを確認
-        const groups = Array.isArray(groupsPayload) 
-             ? (groupsPayload as string[]) 
-             : [];
-              
-        // グループ名 'Admin' をチェック
-        if (groups.includes('Admin')) { 
-          setIsAdmin(true);
-          // 管理者権限がある場合にのみユーザー一覧を取得
-          fetchUsers();
-        } else {
-          setIsAdmin(false);
+        if (!API_URL_BASE) {
+            if (isMounted) {
+                setError('API設定が見つかりません。バックエンドを再デプロイしてください。');
+                setLoading(false);
+            }
+            return;
         }
-      } catch (err) {
-        setError('認証情報の取得中にエラーが発生しました。');
-      } finally {
-        setLoading(false); 
-      }
+
+        // ----------------------------------------------------
+        // 1.1. Admin権限チェック (Cognito UserPoolからグループ情報を確認)
+        // ----------------------------------------------------
+        let isAdminUser = false;
+        try {
+            // 現在のセッションからグループ情報を取得
+            const session = await fetchAuthSession(); 
+            // ユーザー情報が確定しているため、トークンは取得できるはず
+            const groupsPayload = session.tokens?.idToken?.payload['cognito:groups'];
+            const groups = Array.isArray(groupsPayload) 
+                ? (groupsPayload as string[]) 
+                : [];
+                
+            if (groups.includes('Admin')) { 
+                isAdminUser = true;
+            }
+        } catch (err) {
+            // 💡 [追加]: セッション取得失敗時はエラーをセットし、処理を中断 (401対策)
+            if (isMounted) {
+                 console.error('Failed to get auth session for Admin check:', err);
+                 setIsAdmin(false);
+                 setLoading(false);
+                 return;
+            }
+        }
+        
+        if (isMounted) {
+            setIsAdmin(isAdminUser);
+        }
+
+        if (!isAdminUser) {
+             if (isMounted) setLoading(false);
+             return; // Adminでなければここで終了
+        }
+
+
+        // ----------------------------------------------------
+        // 1.2. ユーザー一覧取得ロジック
+        // ----------------------------------------------------
+        const urlPath = `${API_URL_BASE.replace(/\/$/, '')}${API_PATH}`;
+
+        try {
+            const session = await fetchAuthSession();
+            const idToken = session.tokens?.idToken?.toString();
+            
+            if (!idToken) {
+                throw new Error('認証トークンが取得できませんでした。再ログインしてください。');
+            }
+
+            const response = await fetch(urlPath, {
+                method: 'GET',
+                headers: {
+                    // 💡 [重要]: 'Bearer ' プレフィックスを付けて送信 (401対策)
+                    'Authorization': `Bearer ${idToken}`, 
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`APIリクエスト失敗: ${response.status} - ${errorBody}`);
+            }
+
+            const json = await response.json();
+
+            if (isMounted && isUserArray(json)) { // 💡 isMounted チェック
+                setUsers(json); 
+            } else if (isMounted) {
+                console.error('API returned data in unexpected format:', json);
+                throw new Error('APIから予期しない形式のデータが返されました。');
+            }
+
+        } catch (err) {
+            if (isMounted) { // 💡 isMounted チェック
+                console.error('Error fetching users:', err);
+                // 401エラーの場合は、より分かりやすいメッセージに
+                const errorMessage = (err as Error).message.includes('401')
+                    ? '認証が無効です。再度サインインしてください。'
+                    : `ユーザー一覧の取得に失敗しました: ${(err as Error).message}`;
+                    
+                setError(errorMessage);
+            }
+        } finally {
+            if (isMounted) { // 💡 isMounted チェック
+                setLoading(false);
+            }
+        }
     };
-    checkAdmin();
-  }, [fetchUsers]); 
+
+    checkAdminAndFetch();
+
+    // 💡 [重要]: クリーンアップ関数 - アンマウント後のステート更新を防止
+    return () => {
+        isMounted = false; 
+    };
+    
+  }, [fetchTrigger, authenticatedUser]); // 💡 [修正]: authenticatedUser が更新されるたびに実行
 
 
   // ----------------------------------------------------
-  // 💡 [新規ロジック]: 新規ユーザー作成処理
+  // 2. 新規ユーザー作成処理 (refetchUsers を使用)
   // ----------------------------------------------------
   const handleCreateFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { name, value, type, checked } = e.target; // 💡 [修正]: typeとcheckedを取得
+      const { name, value, type, checked } = e.target;
       
       setCreateFormState(prev => ({ 
           ...prev, 
-          [name]: type === 'checkbox' ? checked : value // 💡 [修正]: チェックボックスの場合はcheckedを使う
+          [name]: type === 'checkbox' ? checked : value
       }));
   };
 
   const handleCreateUser = async () => {
       // フォームデータの検証
-      const { username, password, email, name, addToAdminGroup } = createFormState; // 💡 [修正]: addToAdminGroupを取得
+      const { username, password, email, name, addToAdminGroup } = createFormState;
 
       if (!username || !password || !email || !name) {
           alert('すべてのフィールドを入力してください。');
@@ -156,10 +211,9 @@ export function UserManagementPage() {
           const response = await fetch(urlPath, {
               method: 'POST',
               headers: {
-                  'Authorization': accessToken,
+                  'Authorization': `Bearer ${accessToken}`, // 💡 [重要]: 'Bearer ' プレフィックスを追加
                   'Content-Type': 'application/json',
               },
-              // 💡 [修正]: addToAdminGroup をボディに追加
               body: JSON.stringify({ username, password, email, name, addToAdminGroup }),
           });
 
@@ -173,8 +227,7 @@ export function UserManagementPage() {
           setIsCreateModalOpen(false);
           // フォームをリセット (Adminグループフラグはデフォルト値に戻す)
           setCreateFormState({ username: '', password: '', email: '', name: '', addToAdminGroup: true }); 
-          fetchUsers(); // リストを更新
-
+          refetchUsers(); // リストを更新
       } catch (err) {
           console.error('Error creating user:', err);
           alert(`新規ユーザー登録に失敗しました: ${(err as Error).message}`);
@@ -188,7 +241,7 @@ export function UserManagementPage() {
     setIsModalOpen(true);
   };
 
-  // 4. ユーザー削除
+  // 4. ユーザー削除 (refetchUsers を使用)
   const handleDelete = async (username: string) => {
     // 💡 [注意]: window.confirm() は非推奨です。カスタムモーダルに置き換えてください。
     if (!window.confirm(`ユーザー ${username} を削除しますか？`)) return;
@@ -204,7 +257,7 @@ export function UserManagementPage() {
       const response = await fetch(urlPath, {
         method: 'DELETE',
         headers: {
-          'Authorization': idToken,
+          'Authorization': `Bearer ${idToken}`, // 💡 [重要]: 'Bearer ' プレフィックスを追加
         },
       });
       
@@ -214,7 +267,7 @@ export function UserManagementPage() {
       }
       
       alert(`ユーザー ${username} は正常に削除されました。`);
-      fetchUsers(); 
+      refetchUsers(); // リストを更新
     } catch (err) {
       console.error('Error deleting user:', err);
       alert(`ユーザーの削除に失敗しました: ${(err as Error).message}`);
@@ -224,7 +277,9 @@ export function UserManagementPage() {
 
   if (loading) return <p>ロード中...</p>;
   if (error) return <p style={{ color: 'red' }}>エラー: {error}</p>;
-  if (!isAdmin) return <p>ようこそ、一般ユーザーさん。</p>; 
+  // 💡 [修正]: undefined の場合も認証待ちとして表示
+  if (!authenticatedUser) return <p>認証が完了するまでお待ちください...</p>; 
+  if (!isAdmin) return <p>ようこそ、一般ユーザーさん。管理者ページへのアクセス権限がありません。</p>; 
 
   return (
     <div style={{ padding: '20px' }}>
@@ -237,7 +292,7 @@ export function UserManagementPage() {
               >
                   新規ユーザー登録
               </button>
-              <button onClick={fetchUsers} style={{ padding: '10px 15px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+              <button onClick={refetchUsers} style={{ padding: '10px 15px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
                   一覧を更新
               </button>
           </div>
@@ -273,7 +328,7 @@ export function UserManagementPage() {
       </table>
 
       {/* ---------------------------------------------------- */}
-      {/* 💡 [修正]: 新規ユーザー登録モーダル */}
+      {/* 新規ユーザー登録モーダル (デザインは省略) */}
       {/* ---------------------------------------------------- */}
       {isCreateModalOpen && (
         <div style={{ 
@@ -312,11 +367,11 @@ export function UserManagementPage() {
                         name="name"
                         value={createFormState.name}
                         onChange={handleCreateFormChange}
-                        placeholder="表示名 (custom:name) (必須)"
+                        placeholder="表示名 (custom:namex) (必須)"
                         style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}
                     />
                     
-                    {/* 💡 [新規]: Adminグループへの追加チェックボックス */}
+                    {/* Adminグループへの追加チェックボックス */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
                         <input
                             type="checkbox"
@@ -355,10 +410,11 @@ export function UserManagementPage() {
           user={selectedUser}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onUpdateSuccess={fetchUsers}
-          onUpdate={fetchUsers} 
+          onUpdateSuccess={refetchUsers}
+          onUpdate={refetchUsers}
         />
       )}
     </div>
   );
 }
+

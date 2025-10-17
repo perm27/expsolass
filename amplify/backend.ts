@@ -33,10 +33,9 @@ userManagerLambda.role?.attachInlinePolicy(
                 actions: [
                     'cognito-idp:ListUsers',
                     'cognito-idp:AdminUpdateUserAttributes',
-                    'cognito-idp:AdminDeleteUser',
-                    // 💡 [追加]: AdminCreateUserCommandとAdminAddUserToGroupCommandの権限を追加
-                    'cognito-idp:AdminCreateUser', 
-                    'cognito-idp:AdminAddUserToGroup',
+                    'cognito-idp:AdminCreateUser', // 💡 AdminCreateUserCommand
+                    'cognito-idp:AdminAddUserToGroup', // 💡 AdminAddUserToGroupCommand
+                    'cognito-idp:AdminDeleteUser', 
                 ],
                 resources: [userPoolArn],
             }),
@@ -54,14 +53,13 @@ const userManagerApi = new RestApi(apiStack, 'UserManagerApi', {
     defaultCorsPreflightOptions: {
         allowOrigins: [
             'http://localhost:3000', 
-            'http://127.0.0.1:3000', 
             'http://192.168.49.241:3000',
             // 💡 AWSクラウドデプロイ用（最も重要）
             'https://master.d36nkyvt6gwphx.amplifyapp.com',
             // 💡 念のため、ワイルドカードドメインも追加（推奨されませんが、もしブランチが増える場合は有効）
             'https://*.amplifyapp.com', 
         ], 
-        // 💡 [CORS修正]: POST, GET, PUT, DELETE, OPTIONS をすべて許可
+        //allowMethods: ['GET', 'PUT', 'DELETE', 'POST', 'OPTIONS'],
         allowMethods: ['GET', 'PUT', 'DELETE', 'POST', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'Authorization', 'X-Amz-Date', 'X-Api-Key', 'X-Amz-Security-Token'],
     },
@@ -69,7 +67,8 @@ const userManagerApi = new RestApi(apiStack, 'UserManagerApi', {
 
 // Cognito Authorizerの作成
 const authorizer = new CognitoUserPoolsAuthorizer(apiStack, 'CognitoAuthorizer', {
-    cognitoUserPools: [userPool],
+    cognitoUserPools: [userPool], // 💡 [重要]: Cognitoユーザープールを正しく参照しているか
+    identitySource: 'method.request.header.Authorization', // 💡 [確認]: Bearerトークンを受け取る設定
 });
 
 // 標準の Lambda 統合 (GET/PUT/DELETE/POST のメイン処理用)

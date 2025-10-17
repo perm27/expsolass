@@ -42,12 +42,11 @@ const mapCognitoUserToUserData = (user: any): UserData => {
         }
         return acc;
     }, {});
-
     // Cognitoでは、UsernameがEmailに設定されている場合、そのままUsernameとして使用
     return {
         username: user.Username, // ここにはEmailアドレスが入っているはず (例: user@example.com)
         email: attributesMap?.email,
-        name: attributesMap?.['custom:name'],
+        name: attributesMap?.['custom:namex'],
         status: user.UserStatus,
         enabled: user.Enabled,
         createdAt: user.UserCreateDate,
@@ -103,7 +102,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                         { Name: 'email', Value: email },
                         // email_verified を true に設定することで、検証プロセスをスキップ
                         { Name: 'email_verified', Value: 'true' }, 
-                        { Name: 'custom:name', Value: name },
+                        { Name: 'custom:namex', Value: name },
                     ],
                     MessageAction: 'SUPPRESS', // 招待メールなどを抑制
                 });
@@ -158,7 +157,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                 const updateAttributes: AttributeType[] = [];
                 // emailは必須属性のため、更新する場合は含める
                 if (updatedEmail) updateAttributes.push({ Name: 'email', Value: updatedEmail });
-                if (updatedName) updateAttributes.push({ Name: 'custom:name', Value: updatedName });
+                if (updatedName) updateAttributes.push({ Name: 'custom:namex', Value: updatedName });
 
                 if (updateAttributes.length > 0) {
                     const updateCommand = new AdminUpdateUserAttributesCommand({

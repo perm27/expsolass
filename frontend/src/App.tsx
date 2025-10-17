@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // 💡 [追加]: useState, useEffect をインポート
 import './App.css';
 import { Amplify } from 'aws-amplify';
 import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import outputs from './amplify_outputs.json';
 import { UserManagementPage } from './UserManagementPage';
-
-// ユーザー属性取得、セッション取得、および認証後のユーザー情報取得に必要な関数と型をインポート
-import { fetchUserAttributes, getCurrentUser, AuthUser, fetchAuthSession } from 'aws-amplify/auth'; 
+// 💡 [追加]: ユーザー属性取得に必要な関数と型をインポート
+import { fetchUserAttributes, AuthUser } from 'aws-amplify/auth'; 
 
 
 // customセクションからAPI設定を取得
@@ -33,83 +32,66 @@ console.log(currentConfigAPI);
 
 
 function App() {
-    const [displayName, setDisplayName] = useState<string>('');
-    // 💡 [修正]: 認証済みのユーザー情報を格納し、変更を監視するためのState
-    const [authenticatedUser, setAuthenticatedUser] = useState<AuthUser | null>(null);
-    const [loadingAttributes, setLoadingAttributes] = useState<boolean>(false);
+    // 💡 [追加]: 表示名（name属性）を保持するためのState
+    const [displayName, setDisplayName] = useState<string>(''); 
+    // 💡 [追加]: Authenticatorから取得したユーザー情報を保持するためのState
+    const [authenticatedUser, setAuthenticatedUser] = useState<AuthUser | undefined>(undefined); 
 
 
-    // 💡 [修正]: authenticatedUser の変更を検知して属性を取得するロジック
-    // この useEffect は、ユーザーがサインイン/サインアウトするたびに実行されます。
+    // 💡 [新規]: 認証ユーザーが変更されたとき、またはコンポーネントがマウントされたときに属性を取得
     useEffect(() => {
-        
-        async function fetchUserName() {
-            // authenticatedUser が null の場合はサインアウト状態とみなし、処理を終了
-            if (!authenticatedUser) {
-                setDisplayName('');
-                return;
-            }
-            
-            setLoadingAttributes(true);
+        // userがまだ存在しない、またはログアウトしている場合は処理しない
+        if (!authenticatedUser) {
+            setDisplayName(''); // ユーザーがいない場合は表示名をリセット
+            return;
+        }
+
+        const fetchUserNameAttribute = async () => {
             try {
-                // ユーザー属性を取得
+                // 認証済みセッションを使用してユーザー属性を取得
                 const attributes = await fetchUserAttributes();
                 
-                // カスタム属性 'custom:name' を取得
-                const name = attributes['custom:name']; 
-                
-                if (name) {
-                    setDisplayName(name);
+                // 💡 [重要]: 'name' 属性、または 'custom:namex' 属性を優先して表示名とする
+                // Cognito設定によって属性名が異なる場合があるため、存在するものを優先
+                const nameAttribute = attributes.name || (attributes as any)['custom:namex'];
+
+                if (nameAttribute) {
+                    setDisplayName(nameAttribute);
                 } else {
-                    // 表示名がない場合は、usernameをフォールバックとして使用
-                    setDisplayName(authenticatedUser.username); 
+                    // name属性がない場合は、フォールバックとしてusernameを使用
+                    setDisplayName(authenticatedUser.username);
                 }
-
-                // ----------------------------------------------------
-                // 📝 グループ確認ロジック (維持)
-                // ----------------------------------------------------
-                const { tokens } = await fetchAuthSession();
-                const idToken = tokens?.idToken;
-
-                if (idToken) {
-                    const claims = idToken.payload as any;
-                    const userGroups: string[] = claims['cognito:groups'] || [];
-                    console.log('User Groups:', userGroups);
-                }
-                // ----------------------------------------------------
 
             } catch (error) {
                 console.error('Failed to fetch user attributes:', error);
-                setDisplayName(authenticatedUser.username); // エラー時もユーザー名でフォールバック
-            } finally {
-                setLoadingAttributes(false);
+                // 属性取得に失敗した場合も、フォールバックとしてusernameを使用
+                setDisplayName(authenticatedUser.username); 
             }
-        }
+        };
 
-        fetchUserName();
+        fetchUserNameAttribute();
         
-    }, [authenticatedUser]); // 💡 [重要]: authenticatedUser が更新されるたびに実行
+    }, [authenticatedUser]); // 💡 [重要]: authenticatedUser が変更されるたびに実行
 
 
     // Authenticatorのレンダリング
     return (
         <Authenticator>
             {({ signOut, user }) => {
-                // 💡 [修正]: Authenticator から渡される user が変更された場合に State を更新
-                // user が存在し、かつ State の authenticatedUser と異なる場合に更新をトリガー
-                if (user && authenticatedUser?.username !== user.username) {
+                // 💡 [修正]: Authenticator から渡される user を State にセット
+                // useEffectがこの変更を検知して属性取得をトリガーする
+                if (user !== authenticatedUser) {
                     setAuthenticatedUser(user);
-                }
-                // user が存在せず、かつ State に authenticatedUser が残っている場合に State をリセット
-                if (!user && authenticatedUser) {
-                    setAuthenticatedUser(null);
                 }
                 
                 return (
                     <main>
-                        {/* displayName または user.username を表示（どちらも未設定の場合は 'Guest' など） */}
+                        {/* 💡 [修正]: displayName を表示し、未取得の場合は user.username にフォールバック */}
                         <h1>ようこそ、{displayName || user?.username || 'Guest'}さん！</h1>
-                        <UserManagementPage />
+
+                        {/* 認証済みユーザー情報（AuthUser | undefined）を UserManagementPage に渡す */}
+                        <UserManagementPage authenticatedUser={user} />
+
                         <button onClick={signOut}>サインアウト</button>
                     </main>
                 );
@@ -119,3 +101,4 @@ function App() {
 }
 
 export default App;
+
