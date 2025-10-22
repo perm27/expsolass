@@ -279,10 +279,11 @@ export function UserManagementPage({ authenticatedUser }: UserManagementPageProp
   if (error) return <p style={{ color: 'red' }}>エラー: {error}</p>;
   // 💡 [修正]: undefined の場合も認証待ちとして表示
   if (!authenticatedUser) return <p>認証が完了するまでお待ちください...</p>; 
-  if (!isAdmin) return <p>ようこそ、一般ユーザーさん。管理者ページへのアクセス権限がありません。</p>; 
+  if (!isAdmin) return <p>ようこそ、一般ユーザーさん。</p>; 
 
   return (
     <div style={{ padding: '20px' }}>
+      <hr />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2>登録ユーザー一覧</h2>
           <div>

@@ -1,3 +1,11 @@
+:root {
+  /* ここはそのまま維持 */
+  --amplify-colors-brand-primary-10: #f0f8ff; 
+  --amplify-colors-brand-primary-80: #007bff; 
+  --amplify-colors-brand-primary-90: #0069d9; 
+  --amplify-colors-background-tertiary: #0000f9;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -5,9 +13,24 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* 💡 [追加]: body スコープ内でも Amplify のブランドカラー変数を再定義 */
+  /* これにより、Amplify UI のコンポーネントがこれらの変数を確実に参照できるようになります */
+  --amplify-colors-brand-primary-80: #007bff;
+  --amplify-colors-brand-primary-90: #0069d9;
+  --amplify-colors-background-tertiary: #0000f9;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* 💡 [補足的な解決策]: Authenticator 全体にカスタムクラスを適用し、その中で変数を定義 */
+/* もし上記 body の修正で解決しない場合、以下のクラス名を作成し、 */
+/* App.tsx の <Authenticator> に className="custom-amplify-theme" を追加してください */
+.custom-amplify-theme {
+    --amplify-colors-brand-primary-80: #007bff; 
+    --amplify-colors-brand-primary-90: #0069d9;
+}
+

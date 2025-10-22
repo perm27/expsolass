@@ -8,7 +8,12 @@ export const auth = defineAuth({
   },
   
   // 2. ユーザーグループの定義
-  groups: ['Admin'],
+  groups: [
+    'Admin', 
+    'CreatingBotAllowed',
+    'PublishAllowed',
+    'クラウド開発'
+  ],
 
   // 3. ユーザー属性のカスタマイズ
   userAttributes: {

@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react'; // 💡 [追加]: useState, useEffect をインポート
+import React, { useState, useEffect } from 'react'; 
 import './App.css';
 import { Amplify } from 'aws-amplify';
 import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import outputs from './amplify_outputs.json';
 import { UserManagementPage } from './UserManagementPage';
-// 💡 [追加]: ユーザー属性取得に必要な関数と型をインポート
-import { fetchUserAttributes, AuthUser } from 'aws-amplify/auth'; 
+import { ChangePassword } from './ChangePassword'; // ChangePasswordのインポート
+// 💡 [統合済み]: 必要な関数と型をすべて1行にまとめる
+import { fetchUserAttributes, AuthUser, fetchAuthSession } from 'aws-amplify/auth'; 
 
 
 // customセクションからAPI設定を取得
@@ -36,9 +37,12 @@ function App() {
     const [displayName, setDisplayName] = useState<string>(''); 
     // 💡 [追加]: Authenticatorから取得したユーザー情報を保持するためのState
     const [authenticatedUser, setAuthenticatedUser] = useState<AuthUser | undefined>(undefined); 
+    const [loadingAttributes, setLoadingAttributes] = useState<boolean>(false);
+    // 💡 [追加]: パスワード変更フォームの表示状態を管理
+    const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false); 
 
 
-    // 💡 [新規]: 認証ユーザーが変更されたとき、またはコンポーネントがマウントされたときに属性を取得
+    // 💡 認証ユーザーが変更されたとき、またはコンポーネントがマウントされたときに属性を取得
     useEffect(() => {
         // userがまだ存在しない、またはログアウトしている場合は処理しない
         if (!authenticatedUser) {
@@ -51,8 +55,7 @@ function App() {
                 // 認証済みセッションを使用してユーザー属性を取得
                 const attributes = await fetchUserAttributes();
                 
-                // 💡 [重要]: 'name' 属性、または 'custom:namex' 属性を優先して表示名とする
-                // Cognito設定によって属性名が異なる場合があるため、存在するものを優先
+                // 'name' 属性、または 'custom:namex' 属性を優先して表示名とする
                 const nameAttribute = attributes.name || (attributes as any)['custom:namex'];
 
                 if (nameAttribute) {
@@ -71,28 +74,71 @@ function App() {
 
         fetchUserNameAttribute();
         
-    }, [authenticatedUser]); // 💡 [重要]: authenticatedUser が変更されるたびに実行
+    }, [authenticatedUser]); 
 
 
     // Authenticatorのレンダリング
     return (
-        <Authenticator>
+        <Authenticator
+
+            hideSignUp={true}
+            components={{
+                // サインイン画面 (signIn) のヘッダーをカスタマイズ
+                Header() {
+                    // Header のスタイルを定義
+                    const headerStyle: React.CSSProperties = {
+                        padding: '20px 0',
+                        textAlign: 'center',
+                        fontSize: '24px',
+                        fontWeight: 'bold',
+                        color: '#333', // 任意の色
+                        borderBottom: '1px solid #ddd',
+                        marginBottom: '20px',
+                    };
+
+                    return (
+                        <div style={headerStyle}>
+                          ようこそ、ソルクシーズ・アシスタント、
+                          ユーザー管理へ
+                        </div>
+                    );
+                },
+            }}
+        > 
+
             {({ signOut, user }) => {
-                // 💡 [修正]: Authenticator から渡される user を State にセット
-                // useEffectがこの変更を検知して属性取得をトリガーする
+                // Authenticator から渡される user を State にセット
                 if (user !== authenticatedUser) {
                     setAuthenticatedUser(user);
                 }
                 
                 return (
                     <main>
-                        {/* 💡 [修正]: displayName を表示し、未取得の場合は user.username にフォールバック */}
+                        {/* displayName を表示し、未取得の場合は user.username にフォールバック */}
                         <h1>ようこそ、{displayName || user?.username || 'Guest'}さん！</h1>
+
+                        {/* パスワード変更フォームのトグルボタン */}
+                        <div style={{ margin: '20px 0', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <button 
+                                onClick={() => setIsChangePasswordOpen(prev => !prev)}
+                                style={{ padding: '8px 15px', backgroundColor: '#f0ad4e', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+                            >
+                                {isChangePasswordOpen ? 'パスワード変更を閉じる' : 'パスワードを変更する'}
+                            </button>
+                            
+                            <button onClick={signOut} style={{ padding: '8px 15px', backgroundColor: '#d9534f', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+                                サインアウト
+                            </button>
+                        </div>
+ 
+                        {/* 💡 [修正済み]: isChangePasswordOpen が true の場合のみフォームを表示 */}
+                        {isChangePasswordOpen && (
+                            <ChangePassword onSuccess={() => setIsChangePasswordOpen(false)} />
+                        )}
 
                         {/* 認証済みユーザー情報（AuthUser | undefined）を UserManagementPage に渡す */}
                         <UserManagementPage authenticatedUser={user} />
-
-                        <button onClick={signOut}>サインアウト</button>
+                        
                     </main>
                 );
             }}
