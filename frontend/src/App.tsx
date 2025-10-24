@@ -98,8 +98,7 @@ function App() {
 
                     return (
                         <div style={headerStyle}>
-                          ようこそ、ソルクシーズ・アシスタント、
-                          ユーザー管理へ
+                          ようこそ、ユーザー管理システムへ
                         </div>
                     );
                 },

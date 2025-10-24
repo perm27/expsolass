@@ -31,6 +31,7 @@ userManagerLambda.role?.attachInlinePolicy(
         statements: [
             new iam.PolicyStatement({
                 actions: [
+                    'cognito-idp:AdminListGroupsForUser',
                     'cognito-idp:ListUsers',
                     'cognito-idp:AdminUpdateUserAttributes',
                     'cognito-idp:AdminCreateUser', // 💡 AdminCreateUserCommand

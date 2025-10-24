@@ -16,6 +16,7 @@ export interface User {
   username: string;
   email?: string;
   // 💡 [修正]: name 属性を追加
+  depart?: string; 
   name?: string; 
   status?: string;
   enabled?: boolean;

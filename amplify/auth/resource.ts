@@ -11,8 +11,7 @@ export const auth = defineAuth({
   groups: [
     'Admin', 
     'CreatingBotAllowed',
-    'PublishAllowed',
-    'クラウド開発'
+    'PublishAllowed'
   ],
 
   // 3. ユーザー属性のカスタマイズ
@@ -20,7 +19,14 @@ export const auth = defineAuth({
     // 標準属性の定義
     familyName: { mutable: true, required: false },
     
-    // カスタム属性 'custom:name' の定義
+    // カスタム,属性 'custom:name' の定義
+    // 
+    'custom:department': {
+      mutable: true,   // ユーザーによる変更を許可
+      dataType: 'String',
+      minLen: 1,
+      maxLen: 128,
+    },
     'custom:namex': {
       mutable: true,   // ユーザーによる変更を許可
       dataType: 'String',

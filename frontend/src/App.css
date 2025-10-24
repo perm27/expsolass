@@ -36,15 +36,7 @@
     transform: rotate(360deg);
   }
 }
-
-table {
-  border-collapse: separate; /* ˜gü‚ğ•ª—£‚·‚é */
-  border-spacing: 0px;      /* ˜gü‚Æ˜gü‚ÌŠÔ‚É10px‚ÌŠÔŠu‚ğİ‚¯‚é */
-}
-
-/* table ‚É border ‚ğİ’è‚µ‚Ä‚àAƒZƒ‹‚ÆƒZƒ‹‚ÌŠÔ‚ÉŠÔŠu‚ª‹ó‚«‚Ü‚· */
 table, th, td {
-  border: 1px solid #cce;
-  padding: 0px; /* ƒZƒ‹‚Ì“à‘¤‚Ì—]”’ */
+  border: 1px solid #88c;
+  padding: 0px; 
 }
-
